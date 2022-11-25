@@ -94,31 +94,34 @@ int main(void) {
 			perror("accept");
 			continue;
 		}
-	
-		if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
-            		perror("recv");
-            		exit(1);
+		if (!fork()) { // this is the child process
+			if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			buf[numbytes] = '\0';
+			char username[strlen(buf)];
+			strcpy(username,buf);
+
+			if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+				    perror("recv");
+				    exit(1);
+			    }
+			buf[numbytes] = '\0';
+			char password[strlen(buf)];
+			strcpy(password,buf);
+
+			cout << "The main server recieved the authentication for " << username << " using TCP over port " << TCPPORT << "." << endl;
+			strcpy(username,encryptCred(username));
+			strcpy(password,encryptCred(password));
+
+			if (send(new_fd, "Hello, world!\n", 14, 0) == -1) {
+				perror("send");
+			}
+			close(sockfd);
+			close(new_fd);
+			exit(0);
 		}
-		buf[numbytes] = '\0';
-		char username[strlen(buf)];
-		strcpy(username,buf);
-
-		if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
-                            perror("recv");
-                            exit(1);
-                    }
-		buf[numbytes] = '\0';
-        	char password[strlen(buf)];
-		strcpy(password,buf);
-
-		cout << "The main server recieved the authentication for " << username << " using TCP over port " << TCPPORT << "." << endl;
-		strcpy(username,encryptCred(username));
-		strcpy(password,encryptCred(password));
-
-		if (send(new_fd, "Hello, world!\n", 14, 0) == -1) {
-			perror("send");
-		}
-		close(sockfd);
 		close(new_fd); // parent doesn’t need this
 
 	}
