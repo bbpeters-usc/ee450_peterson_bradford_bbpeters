@@ -15,6 +15,7 @@
 
 #define TCPPORT 25633 // the port the client will be connecting to
 #define UDPPORT 24633 // the port servers will be connecting to
+#define CPORT 21633
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 51 // max number of bytes we can get at once
 
@@ -55,7 +56,8 @@ char* encryptCred(char* input) {
 int main(void) {
 	int sockfd, new_fd, numbytes; // listen on sock_fd, new connection on new_fd
 	struct sockaddr_in my_addr; // my address information
-	struct sockaddr_in their_addr; // connector’s address information
+	struct sockaddr_in client_addr; // connector’s address information
+	struct sockaddr_in serverC_addr;
 	socklen_t sin_size;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
@@ -76,6 +78,11 @@ int main(void) {
 		perror("bind");
 		exit(1);
 	}
+	their_addr.sin_family = AF_INET; // host byte order
+	their_addr.sin_port = htons(CPORT); // short, network byte order
+	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(their_addr.sin_zero), ’\0’, 8); // zero the rest of the struct
+	
 	if (listen(sockfd, BACKLOG) == -1) {
 		perror("listen");
 		exit(1);
@@ -114,10 +121,17 @@ int main(void) {
 			cout << "The main server recieved the authentication for " << username << " using TCP over port " << TCPPORT << "." << endl;
 			strcpy(username,encryptCred(username));
 			strcpy(password,encryptCred(password));
-
-			if (send(new_fd, "Hello, world!\n", 14, 0) == -1) {
-				perror("send");
+			
+			if ((numbytes = sendto(sockfd, username, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+				perror("sendto");
+				exit(1);
 			}
+			if ((numbytes = sendto(sockfd, password, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+				perror("sendto");
+				exit(1);
+			}
+			cout << "The main server sent an authentication request to serverC." << endl;
+			
 			close(sockfd);
 			close(new_fd);
 			exit(0);
