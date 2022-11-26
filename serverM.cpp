@@ -13,9 +13,9 @@
 #include <cctype>
 #include <cstring>
 
-#define TCPPORT 25633 // the port the client will be connecting to
-#define UDPPORT 24633 // the port servers will be connecting to
-#define CPORT 21633
+#define SERVERM_TCP_PORT 25633 // the port the client will be connecting to
+#define SERVERM_UDP_PORT 24633 // the port servers will be connecting to
+#define SERVERC_PORT 21633
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 51 // max number of bytes we can get at once
 
@@ -54,40 +54,61 @@ char* encryptCred(char* input) {
 }
 
 int main(void) {
-	int sockfd, new_fd, numbytes; // listen on sock_fd, new connection on new_fd
-	struct sockaddr_in my_addr; // my address information
+	int serverM_TCP_fd, serverM_UDP_fd, client_fd, numbytes; // listen on sock_fd, new connection on client_fd
+	struct sockaddr_in serverM_TCP_addr; // my address information
+	struct sockaddr_in serverM_UDP_addr;
 	struct sockaddr_in client_addr; // connector’s address information
 	struct sockaddr_in serverC_addr;
 	socklen_t sin_size;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
 	int yes=1;
-	if ((sockfd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+
+	if ((serverM_TCP_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
-	if (setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+	if (setsockopt(serverM_TCP_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
-	my_addr.sin_family = AF_INET; // host byte order
-	my_addr.sin_port = htons(TCPPORT); // short, network byte order
-	my_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
-	memset(&(my_addr.sin_zero), '\0', 8); // zero the rest of the struct
-	if (bind(sockfd, (struct sockaddr *)&my_addr, sizeof(struct sockaddr))==-1){
+	serverM_TCP_addr.sin_family = AF_INET; // host byte order
+	serverM_TCP_addr.sin_port = htons(SERVERM_TCP_PORT); // short, network byte order
+	serverM_TCP_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+	memset(&(serverM_TCP_addr.sin_zero), '\0', 8); // zero the rest of the struct
+	if (bind(serverM_TCP_fd, (struct sockaddr *)&serverM_TCP_addr, sizeof(struct sockaddr))==-1){
 		perror("bind");
 		exit(1);
 	}
-	their_addr.sin_family = AF_INET; // host byte order
-	their_addr.sin_port = htons(CPORT); // short, network byte order
-	their_addr.sin_addr = *((struct in_addr *)he->h_addr);
-	memset(&(their_addr.sin_zero), ’\0’, 8); // zero the rest of the struct
+
+	if ((serverM_UDP_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
+		perror("socket");
+		exit(1);
+	}
+	if (setsockopt(serverM_UDP_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+		perror("setsockopt");
+		exit(1);
+	}
+	serverM_UDP_addr.sin_family = AF_INET; // host byte order
+	serverM_UDP_addr.sin_port = htons(SERVERM_UDP_PORT); // short, network byte order
+	serverM_UDP_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+	memset(&(serverM_UDP_addr.sin_zero), '\0', 8); // zero the rest of the struct
+	if (bind(serverM_UDP_fd, (struct sockaddr *)&serverM_UDP_addr, sizeof(struct sockaddr))==-1){
+		perror("bind");
+		exit(1);
+	}
+
+	serverC_addr.sin_family = AF_INET; // host byte order
+	serverC_addr.sin_port = htons(SERVERC_PORT); // short, network byte order
+	serverC_addr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(serverC_addr.sin_zero), ’\0’, 8); // zero the rest of the struct
 	
-	if (listen(sockfd, BACKLOG) == -1) {
+	if (listen(serverM_TCP_fd, BACKLOG) == -1) {
 		perror("listen");
 		exit(1);
 	}
 	cout << "The main server is up and running." << endl;
+
 	sa.sa_handler = sigchld_handler; // reap all dead processes
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
@@ -95,14 +116,15 @@ int main(void) {
 		perror("sigaction");
 		exit(1);
 	}
+
 	while(1) { // main accept() loop
 		sin_size = sizeof(struct sockaddr_in);
-		if ((new_fd = accept(sockfd, (struct sockaddr *)&their_addr, &sin_size)) == -1) {
+		if ((client_fd = accept(serverM_TCP_fd, (struct sockaddr *)&client_addr, &sin_size)) == -1) {
 			perror("accept");
 			continue;
 		}
 		if (!fork()) { // this is the child process
-			if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			if ((numbytes=recv(client_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 				perror("recv");
 				exit(1);
 			}
@@ -110,7 +132,7 @@ int main(void) {
 			char username[strlen(buf)];
 			strcpy(username,buf);
 
-			if ((numbytes=recv(new_fd, buf, MAXDATASIZE-1, 0)) == -1) {
+			if ((numbytes=recv(client_fd, buf, MAXDATASIZE-1, 0)) == -1) {
 				    perror("recv");
 				    exit(1);
 			    }
@@ -118,25 +140,37 @@ int main(void) {
 			char password[strlen(buf)];
 			strcpy(password,buf);
 
-			cout << "The main server recieved the authentication for " << username << " using TCP over port " << TCPPORT << "." << endl;
+			cout << "The main server recieved the authentication for " << username << " using TCP over port " << SERVERM_TCP_PORT << "." << endl;
 			strcpy(username,encryptCred(username));
 			strcpy(password,encryptCred(password));
 			
-			if ((numbytes = sendto(sockfd, username, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+			if ((numbytes = sendto(serverM_UDP_fd, username, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
 				perror("sendto");
 				exit(1);
 			}
-			if ((numbytes = sendto(sockfd, password, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+			if ((numbytes = sendto(serverM_UDP_fd, password, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
 				perror("sendto");
 				exit(1);
 			}
 			cout << "The main server sent an authentication request to serverC." << endl;
+
+			if ((numbytes=recvfrom(serverM_UDP_fd, buf, 1 , 0, (struct sockaddr *)&serverC_addr, &addr_len)) == -1) {
+				perror("recvfrom");
+				exit(1);
+			}
+			cout << "The main server received the result of the authentication request from ServerC using UDP over port " << SERVERM_UDP_PORT << "." << endl; 
 			
-			close(sockfd);
-			close(new_fd);
+			if (send(client_fd, buf[0], 1, 0) == -1) {
+				perror("send");
+			}
+			cout << "The main server sent the authentication result to the client." << endl;
+
+			close(serverM_UDP_fd);
+			close(serverM_TCP_fd);
+			close(client_fd);
 			exit(0);
 		}
-		close(new_fd); // parent doesn’t need this
+		close(client_fd); // parent doesn’t need this
 
 	}
 	
