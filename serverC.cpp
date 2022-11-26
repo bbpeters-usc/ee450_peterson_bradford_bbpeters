@@ -81,7 +81,7 @@ int main(void) {
 	serverM_addr.sin_addr = *((struct in_addr *)he->h_addr);
 	memset(&(serverM_addr.sin_zero), ’\0’, 8); // zero the rest of the struct
 
-	cout << "The ServerC is up and running using UDP on port " << SERVERC_PORT << ". << endl;
+	cout << "The ServerC is up and running using UDP on port " << SERVERC_PORT << "." << endl;
 	sa.sa_handler = sigchld_handler; // reap all dead processes
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
