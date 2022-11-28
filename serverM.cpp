@@ -133,22 +133,21 @@ int main(void) {
 			strcpy(username,buf);
 
 			if ((numbytes=recv(client_fd, buf, MAXDATASIZE-1, 0)) == -1) {
-				    perror("recv");
-				    exit(1);
-			    }
+				perror("recv");
+				exit(1);
+			}
 			buf[numbytes] = '\0';
 			char password[strlen(buf)];
 			strcpy(password,buf);
 
-			cout << "The main server recieved the authentication for " << username << " using TCP over port " << SERVERM_TCP_PORT << "." << endl;
-			strcpy(username,encryptCred(username));
-			strcpy(password,encryptCred(password));
+			cout << "The main server recieved the authentication for " << username;
+			cout << "using TCP over port " << SERVERM_TCP_PORT << "." << endl;
 			
-			if ((numbytes = sendto(serverM_UDP_fd, username, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+			if ((numbytes = sendto(serverM_UDP_fd, encryptCred(username), 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
 				perror("sendto");
 				exit(1);
 			}
-			if ((numbytes = sendto(serverM_UDP_fd, password, 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
+			if ((numbytes = sendto(serverM_UDP_fd, encryptCred(password), 50, 0, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))) == -1) {
 				perror("sendto");
 				exit(1);
 			}
@@ -158,12 +157,35 @@ int main(void) {
 				perror("recvfrom");
 				exit(1);
 			}
-			cout << "The main server received the result of the authentication request from ServerC using UDP over port " << SERVERM_UDP_PORT << "." << endl; 
+			cout << "The main server received the result of the authentication request from ServerC using UDP over port "; 
+			cout << SERVERM_UDP_PORT << "." << endl; 
 			
 			if (send(client_fd, buf[0], 1, 0) == -1) {
 				perror("send");
 			}
 			cout << "The main server sent the authentication result to the client." << endl;
+
+
+			if ((numbytes=recv(client_fd, buf, 5, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			buf[numbytes] = '\0';
+			char course[strlen(buf)];
+			strcpy(course,buf);
+
+			if ((numbytes=recv(client_fd, buf, 2, 0)) == -1) {
+				perror("recv");
+				exit(1);
+			}
+			buf[numbytes] = '\0';
+			char category[strlen(buf)];
+			strcpy(category,buf);
+			cout << "The main server received from " << username << " to query course "; 
+			cout << course
+			about <category> using TCP over port <port number>."
+
+
 
 			close(serverM_UDP_fd);
 			close(serverM_TCP_fd);
