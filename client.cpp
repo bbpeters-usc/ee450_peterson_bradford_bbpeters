@@ -76,20 +76,21 @@ int main() {
 			cout << username << " received the result of authentication using TCP over port " << clientPort << ". "; 
 			cout << "Authentication is successful" << endl;
 			break; 
-		} else if(n == -1){
-			cout << "Authentication Failed for 3 attempts. Client will shut down." << endl;
-			exit(0);
 		} else if(buf[0] == '0'){
 			cout << username << " received the result of authentication using TCP over port " << clientPort << ". "; 
 			cout << "Authentication failed: Username Does not exist" << endl;
 			cout << "Attempts remaining: " << n << endl;
-			n--
-		} else {
+			n--;
+		} else if(buf[0] == '1'){
 			cout << username << " received the result of authentication using TCP over port " << clientPort << ". "; 
 			cout << "Authentication failed: Password does not match" << endl;
 			cout << "Attempts remaining: " << n << endl;
-			n--
+			n--;
 		}
+		if(n == -1){
+                        cout << "Authentication Failed for 3 attempts. Client will shut down." << endl;
+                        exit(0);
+                }
 	}
 	
 	string course, category;

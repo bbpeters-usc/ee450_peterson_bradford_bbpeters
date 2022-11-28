@@ -102,32 +102,29 @@ int main(void) {
 			perror("recvfrom");
 			exit(1);
 		}
-		cout << "The ServerC received an authentication request from the Main Server." << endl;
-		cout << buf << " " << strlen(buf) << " (" << buf[5] << ")" << endl;
-		buf[numbytes] = '\0';
-		char username[strlen(buf)];
-		strcpy(username,buf);
+
+		buf[numbytes-1] = '\0';
+		string username = buf;
 
 		if ((numbytes=recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
 			buf[numbytes] = '\0';
 			perror("recvfrom");
 			exit(1);
 		}
-		buf[numbytes] = '\0';
-		char password[strlen(buf)];
-		strcpy(password,buf);
+		buf[numbytes-1] = '\0';
+		string password = buf;
 
+		cout << "The ServerC received an authentication request from the Main Server." << endl;
+		
 		string auth = "0"; //0 means no username match, 1 means wrong password, 2 means correct credentials
-		cout << username << " " << strlen(username) << endl;
 		for(int i = 0; i < n; i++){
-			cout << entries[i].user << " " << strlen(entries[i].user.c_str()) << endl;
-			if(!strcmp(username, entries[i].user.c_str())){
-				if(!strcmp(password, entries[i].pass.c_str())){ auth = "2"; }
+			if(!username.compare(entries[i].user)){
+				if(!password.compare(entries[i].pass)){ auth = "2"; }
 				else{ auth = "1"; }
 				break;
 			}
 		}
-		if ((numbytes = sendto(serverCSock, auth.c_str(), 1, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
+		if ((numbytes = sendto(serverCSock, auth.c_str(), 2, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
 			perror("sendto");
 			exit(1);
 		}

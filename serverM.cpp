@@ -27,8 +27,8 @@ void SigchldHandler(int s)
 }
 
 string EncryptCred(string input) {
-	for(int i=0; i < size; i++){
-		string encrypted = input;
+	string encrypted = input;
+	for(int i=0; i < input.length(); i++){
 		char curr = input[i];
 		if(isalpha(curr)){
 			if(isupper(curr)){
@@ -133,43 +133,45 @@ int main(void) {
 			continue;
 		}
 		if (!fork()) { // this is the child process
-			while(1){
-				if ((numBytes=recv(client, buf, MAXDATASIZE-1, 0)) == -1) {
+			string username, password;
+			for(int i = 0; i < 3; i++) {
+				if ((numBytes=recv(client, buf, MAXDATASIZE, 0)) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes]='\0';
-				string username = buf;
+				buf[numBytes-1]='\0';
+				username = buf;
 
-				if ((numBytes=recv(client, buf, MAXDATASIZE-1, 0)) == -1) {
+				if ((numBytes=recv(client, buf, MAXDATASIZE, 0)) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes]='\0';
-				string password = buf;
+				buf[numBytes-1]='\0';
+				password = buf;
 
 				cout << "The main server recieved the authentication for " << username;
 				cout << " using TCP over port " << TCPPORT << "." << endl;
 
 				string encryptedUser = EncryptCred(username);
-				encryptedUser.append(MAXDATASIZE-msg.length(), '\0');
+				encryptedUser.append(MAXDATASIZE-encryptedUser.length(), '\0');
 				string encryptedPass = EncryptCred(password);
-				encryptedPass.append(MAXDATASIZE-msg.length(), '\0');
+				encryptedPass.append(MAXDATASIZE-encryptedPass.length(), '\0');
 				
 				if ((numBytes = sendto(udpSock, encryptedUser.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
 					perror("sendto");
 					exit(1);
 				}
-				if ((numBytes = sendto(udpSock, encryptedPass, MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
+				if ((numBytes = sendto(udpSock, encryptedPass.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
 					perror("sendto");
 					exit(1);
 				}
 				cout << "The main server sent an authentication request to serverC." << endl;
 
-				if ((numBytes=recvfrom(udpSock, buf, 1 , 0, (struct sockaddr *)&serverCAddr, &addrLen)) == -1) {
+				if ((numBytes=recvfrom(udpSock, buf, 2, 0, (struct sockaddr *)&serverCAddr, &addrLen)) == -1) {
 					perror("recvfrom");
 					exit(1);
 				}
+				buf[numBytes-1]='\0';
 				cout << "The main server received the result of the authentication request from ServerC using UDP over port "; 
 				cout << UDPPORT << "." << endl; 
 				
@@ -177,6 +179,7 @@ int main(void) {
 					perror("send");
 				}
 				cout << "The main server sent the authentication result to the client." << endl;
+				
 				if(buf[0] == '2') { break; }
 			}
 
