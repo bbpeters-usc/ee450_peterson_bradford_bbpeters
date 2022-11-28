@@ -83,12 +83,12 @@ int main() {
 			cout << username << " received the result of authentication using TCP over port " << client_port << ". "; 
 			cout << "Authentication failed: Username Does not exist" << endl;
 			cout << "Attempts remaining: " << n << endl;
-			n--
+			n--;
 		} else {
 			cout << username << " received the result of authentication using TCP over port " << client_port << ". "; 
 			cout << "Authentication failed: Password does not match" << endl;
 			cout << "Attempts remaining: " << n << endl;
-			n--
+			n--;
 		}
 	}
 	

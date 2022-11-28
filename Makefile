@@ -5,5 +5,5 @@ all: $(patsubst %.cpp, %, $(wildcard *.cpp))
 #First state what is needed for them e.g. additional headers, .cpp files in an include folder...
 #Then the command to create the .out file, probably you want to add further options to the g++ call.
 %: %.cpp Makefile
-	g++ $< -o $@ -std=c++0x
+	g++ $< -o $@ -std=c++11
 

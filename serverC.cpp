@@ -13,9 +13,9 @@
 #include <fstream>
 #include <cstring>
 
-#define SERVERC_PORT 21633; 
-#define SERVERM_PORT 24633;
-#define MAXDATASIZE 51 // max number of bytes we can get at once
+#define SERVERC_PORT 21633 
+#define SERVERM_PORT 24633
+#define MAXDATASIZE 50 // max number of bytes we can get at once
 
 using namespace std;
 
@@ -32,9 +32,10 @@ void sigchld_handler(int s)
 
 int main(void) {
 	int serverC_fd;
+	struct hostent *he;
 	struct sockaddr_in serverC_addr; // my address information
 	struct sockaddr_in serverM_addr; // connector’s address information
-	socklen_t sin_size;
+	socklen_t addr_len;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
 	int numbytes;
@@ -58,6 +59,11 @@ int main(void) {
 	    entries[n].pass = line;
 		n++;
 	}
+	
+	if ((he=gethostbyname("localhost")) == NULL) { // get the host info
+		herror("gethostbyname");
+		exit(1);
+	}
 
 	if ((serverC_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
 		perror("socket");
@@ -68,7 +74,7 @@ int main(void) {
 		exit(1);
 	}
 	serverC_addr.sin_family = AF_INET; // host byte order
-	serverC_addr.sin_port = htons(SERVERM_PORT); // short, network byte order
+	serverC_addr.sin_port = htons(SERVERC_PORT); // short, network byte order
 	serverC_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
 	memset(&(serverC_addr.sin_zero), '\0', 8); // zero the rest of the struct
 	if (bind(serverC_fd, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))==-1){
@@ -77,9 +83,9 @@ int main(void) {
 	}
 
 	serverM_addr.sin_family = AF_INET; // host byte order
-	serverM_addr.sin_port = htons(SERVERC_PORT); // short, network byte order
+	serverM_addr.sin_port = htons(SERVERM_PORT); // short, network byte order
 	serverM_addr.sin_addr = *((struct in_addr *)he->h_addr);
-	memset(&(serverM_addr.sin_zero), ’\0’, 8); // zero the rest of the struct
+	memset(&(serverM_addr.sin_zero), '\0', 8); // zero the rest of the struct
 
 	cout << "The ServerC is up and running using UDP on port " << SERVERC_PORT << "." << endl;
 	sa.sa_handler = sigchld_handler; // reap all dead processes
@@ -89,19 +95,21 @@ int main(void) {
 		perror("sigaction");
 		exit(1);
 	}
-	addr_len = sizeof(struct sockaddr);
 
 	while(1) { // main accept() loop
-		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE-1 , 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
+		addr_len = sizeof(struct sockaddr);
+		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
 		cout << "The ServerC received an authentication request from the Main Server." << endl;
+		cout << buf << " " << strlen(buf) << " (" << buf[5] << ")" << endl;
 		buf[numbytes] = '\0';
 		char username[strlen(buf)];
 		strcpy(username,buf);
 
-		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE-1 , 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
+		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
+			buf[numbytes] = '\0';
 			perror("recvfrom");
 			exit(1);
 		}
@@ -109,15 +117,17 @@ int main(void) {
 		char password[strlen(buf)];
 		strcpy(password,buf);
 
-		char auth = '0'; //0 means no username match, 1 means wrong password, 2 means correct credentials
+		string auth = "0"; //0 means no username match, 1 means wrong password, 2 means correct credentials
+		cout << username << " " << strlen(username) << endl;
 		for(int i = 0; i < n; i++){
-			if(username == entries[i].user.c_str()){
-				if(password == entries[i].pass.c_str()){ auth = '2'; }
-				else{ auth = '1'; }
+			cout << entries[i].user << " " << strlen(entries[i].user.c_str()) << endl;
+			if(!strcmp(username, entries[i].user.c_str())){
+				if(!strcmp(password, entries[i].pass.c_str())){ auth = "2"; }
+				else{ auth = "1"; }
 				break;
 			}
 		}
-		if ((numbytes = sendto(serverC_fd, auth, 1, 0, (struct sockaddr *)&serverM_addr, sizeof(struct sockaddr))) == -1) {
+		if ((numbytes = sendto(serverC_fd, auth.c_str(), 1, 0, (struct sockaddr *)&serverM_addr, addr_len)) == -1) {
 			perror("sendto");
 			exit(1);
 		}
