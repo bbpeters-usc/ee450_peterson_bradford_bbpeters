@@ -13,34 +13,34 @@
 #include <cctype>
 #include <cstring>
 
-#define SERVERM_TCP_PORT 25633 // the port the client will be connecting to
-#define SERVERM_UDP_PORT 24633 // the port servers will be connecting to
-#define SERVERC_PORT 21633
+#define TCPPORT 25633 // the port the client will be connecting to
+#define UDPPORT 24633 // the port servers will be connecting to
+#define SERVERCPORT 21633
 #define BACKLOG 10 // how many pending connections queue will hold
-#define MAXDATASIZE 50 // max number of bytes we can get at once
+#define MAXDATASIZE 51 // max number of bytes we can get at once
 
 using namespace std;
 
-void sigchld_handler(int s)
+void SigchldHandler(int s)
 {
 	while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-char* encryptCred(char* input, int size) {
-	char* encrypted = new char[size];
+string EncryptCred(string input) {
 	for(int i=0; i < size; i++){
+		string encrypted = input;
 		char curr = input[i];
 		if(isalpha(curr)){
 			if(isupper(curr)){
 				curr -= 'A';
 				curr += 4;
-	                        curr = curr % 26;
+				curr = curr % 26;
 				curr += 'A';
 			} else {
 				curr -= 'a';
 				curr += 4;
-                                curr = curr % 26;
-                                curr += 'a';
+				curr = curr % 26;
+				curr += 'a';
 			}
 		} else if(isdigit(curr)) {
 			curr -= '0';
@@ -48,20 +48,21 @@ char* encryptCred(char* input, int size) {
 			curr = curr % 10;
 			curr += '0'; 
 		}
+
 		encrypted[i] = curr;
 	}
 	return encrypted;
 }
 
 int main(void) {
-	int serverM_TCP_fd, serverM_UDP_fd, client_fd, numbytes; // listen on sock_fd, new connection on client_fd
+	int tcpSock, udpSock, client, numBytes; // listen on sock_fd, new connection on client
 	struct hostent *he;
-	struct sockaddr_in serverM_TCP_addr; // my address information
-	struct sockaddr_in serverM_UDP_addr;
-	struct sockaddr_in client_addr; // connector’s address information
-	struct sockaddr_in serverC_addr;
-	socklen_t sin_size;
-	socklen_t addr_len;
+	struct sockaddr_in tcpAddr; // my address information
+	struct sockaddr_in udpAddr;
+	struct sockaddr_in clientAddr; // connector’s address information
+	struct sockaddr_in serverCAddr;
+	socklen_t sinSize;
+	socklen_t addrLen;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
 	int yes=1;
@@ -71,52 +72,52 @@ int main(void) {
 		exit(1);
 	}
 
-	if ((serverM_TCP_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
+	if ((tcpSock = socket(PF_INET, SOCK_STREAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
-	if (setsockopt(serverM_TCP_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+	if (setsockopt(tcpSock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
-	serverM_TCP_addr.sin_family = AF_INET; // host byte order
-	serverM_TCP_addr.sin_port = htons(SERVERM_TCP_PORT); // short, network byte order
-	serverM_TCP_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
-	memset(&(serverM_TCP_addr.sin_zero), '\0', 8); // zero the rest of the struct
-	if (bind(serverM_TCP_fd, (struct sockaddr *)&serverM_TCP_addr, sizeof(struct sockaddr))==-1){
+	tcpAddr.sin_family = AF_INET; // host byte order
+	tcpAddr.sin_port = htons(TCPPORT); // short, network byte order
+	tcpAddr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+	memset(&(tcpAddr.sin_zero), '\0', 8); // zero the rest of the struct
+	if (bind(tcpSock, (struct sockaddr *)&tcpAddr, sizeof(struct sockaddr))==-1){
 		perror("bind");
 		exit(1);
 	}
 
-	if ((serverM_UDP_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
+	if ((udpSock = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
-	if (setsockopt(serverM_UDP_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+	if (setsockopt(udpSock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
-	serverM_UDP_addr.sin_family = AF_INET; // host byte order
-	serverM_UDP_addr.sin_port = htons(SERVERM_UDP_PORT); // short, network byte order
-	serverM_UDP_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
-	memset(&(serverM_UDP_addr.sin_zero), '\0', 8); // zero the rest of the struct
-	if (bind(serverM_UDP_fd, (struct sockaddr *)&serverM_UDP_addr, sizeof(struct sockaddr))==-1){
+	udpAddr.sin_family = AF_INET; // host byte order
+	udpAddr.sin_port = htons(UDPPORT); // short, network byte order
+	udpAddr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+	memset(&(udpAddr.sin_zero), '\0', 8); // zero the rest of the struct
+	if (bind(udpSock, (struct sockaddr *)&udpAddr, sizeof(struct sockaddr))==-1){
 		perror("bind");
 		exit(1);
 	}
 
-	serverC_addr.sin_family = AF_INET; // host byte order
-	serverC_addr.sin_port = htons(SERVERC_PORT); // short, network byte order
-	serverC_addr.sin_addr = *((struct in_addr *)he->h_addr);
-	memset(&(serverC_addr.sin_zero), '\0', 8); // zero the rest of the struct
+	serverCAddr.sin_family = AF_INET; // host byte order
+	serverCAddr.sin_port = htons(SERVERCPORT); // short, network byte order
+	serverCAddr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(serverCAddr.sin_zero), '\0', 8); // zero the rest of the struct
 	
-	if (listen(serverM_TCP_fd, BACKLOG) == -1) {
+	if (listen(tcpSock, BACKLOG) == -1) {
 		perror("listen");
 		exit(1);
 	}
 	cout << "The main server is up and running." << endl;
 
-	sa.sa_handler = sigchld_handler; // reap all dead processes
+	sa.sa_handler = SigchldHandler; // reap all dead processes
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -125,83 +126,85 @@ int main(void) {
 	}
 
 	while(1) { // main accept() loop
-		sin_size = sizeof(struct sockaddr_in);
-		addr_len = sizeof(struct sockaddr);
-		if ((client_fd = accept(serverM_TCP_fd, (struct sockaddr *)&client_addr, &sin_size)) == -1) {
+		sinSize = sizeof(struct sockaddr_in);
+		addrLen = sizeof(struct sockaddr);
+		if ((client = accept(tcpSock, (struct sockaddr *)&clientAddr, &sinSize)) == -1) {
 			perror("accept");
 			continue;
 		}
 		if (!fork()) { // this is the child process
-			if ((numbytes=recv(client_fd, buf, MAXDATASIZE, 0)) == -1) {
+			while(1){
+				if ((numBytes=recv(client, buf, MAXDATASIZE-1, 0)) == -1) {
+					perror("recv");
+					exit(1);
+				}
+				buf[numBytes]='\0';
+				string username = buf;
+
+				if ((numBytes=recv(client, buf, MAXDATASIZE-1, 0)) == -1) {
+					perror("recv");
+					exit(1);
+				}
+				buf[numBytes]='\0';
+				string password = buf;
+
+				cout << "The main server recieved the authentication for " << username;
+				cout << " using TCP over port " << TCPPORT << "." << endl;
+
+				string encryptedUser = EncryptCred(username);
+				encryptedUser.append(MAXDATASIZE-msg.length(), '\0');
+				string encryptedPass = EncryptCred(password);
+				encryptedPass.append(MAXDATASIZE-msg.length(), '\0');
+				
+				if ((numBytes = sendto(udpSock, encryptedUser.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
+					perror("sendto");
+					exit(1);
+				}
+				if ((numBytes = sendto(udpSock, encryptedPass, MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
+					perror("sendto");
+					exit(1);
+				}
+				cout << "The main server sent an authentication request to serverC." << endl;
+
+				if ((numBytes=recvfrom(udpSock, buf, 1 , 0, (struct sockaddr *)&serverCAddr, &addrLen)) == -1) {
+					perror("recvfrom");
+					exit(1);
+				}
+				cout << "The main server received the result of the authentication request from ServerC using UDP over port "; 
+				cout << UDPPORT << "." << endl; 
+				
+				if (send(client, buf, 1, 0) == -1) {
+					perror("send");
+				}
+				cout << "The main server sent the authentication result to the client." << endl;
+				if(buf[0] == '2') { break; }
+			}
+
+			if ((numBytes=recv(client, buf, 5, 0)) == -1) {
 				perror("recv");
 				exit(1);
 			}
-			buf[numbytes]='\0';
-			char username[strlen(buf)];
-			strcpy(username,buf);
-			cout << encryptCred(username, strlen(username)) << " " << strlen(encryptCred(username, strlen(username))) << endl;
+			buf[numBytes] = '\0';
+			string course = buf;
 
-			if ((numbytes=recv(client_fd, buf, MAXDATASIZE, 0)) == -1) {
+			if ((numBytes=recv(client, buf, 2, 0)) == -1) {
 				perror("recv");
 				exit(1);
 			}
-			buf[numbytes]='\0';
-			char password[strlen(buf)];
-			strcpy(password,buf);
-
-			cout << "The main server recieved the authentication for " << username;
-			cout << " using TCP over port " << SERVERM_TCP_PORT << "." << endl;
-			
-			if ((numbytes = sendto(serverM_UDP_fd, encryptCred(username, strlen(username)), MAXDATASIZE, 0, (struct sockaddr *)&serverC_addr, addr_len)) == -1) {
-				perror("sendto");
-				exit(1);
-			}
-			if ((numbytes = sendto(serverM_UDP_fd, encryptCred(password, strlen(password)), MAXDATASIZE, 0, (struct sockaddr *)&serverC_addr, addr_len)) == -1) {
-				perror("sendto");
-				exit(1);
-			}
-			cout << "The main server sent an authentication request to serverC." << endl;
-
-			if ((numbytes=recvfrom(serverM_UDP_fd, buf, 1 , 0, (struct sockaddr *)&serverC_addr, &addr_len)) == -1) {
-				perror("recvfrom");
-				exit(1);
-			}
-			cout << "The main server received the result of the authentication request from ServerC using UDP over port "; 
-			cout << SERVERM_UDP_PORT << "." << endl; 
-			
-			if (send(client_fd, buf, 1, 0) == -1) {
-				perror("send");
-			}
-			cout << "The main server sent the authentication result to the client." << endl;
-
-
-			if ((numbytes=recv(client_fd, buf, 5, 0)) == -1) {
-				perror("recv");
-				exit(1);
-			}
-			buf[numbytes] = '\0';
-			char course[strlen(buf)];
-			strcpy(course,buf);
-
-			if ((numbytes=recv(client_fd, buf, 2, 0)) == -1) {
-				perror("recv");
-				exit(1);
-			}
-			buf[numbytes] = '\0';
-			char category[strlen(buf)];
-			strcpy(category,buf);
+			buf[numBytes] = '\0';
+			string category = buf;
 			cout << "The main server received from " << username << " to query course "; 
 			//cout << course;
 			//about <category> using TCP over port <port number>."
 
 
 
-			close(serverM_UDP_fd);
-			close(serverM_TCP_fd);
-			close(client_fd);
+			close(udpSock);
+			close(tcpSock);
+			close(client);
 			exit(0);
 		}
-		close(client_fd); // parent doesn’t need this
+		close(client); // parent doesn’t need this
 
 	}
 	
