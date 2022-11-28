@@ -13,29 +13,29 @@
 #include <fstream>
 #include <cstring>
 
-#define SERVERC_PORT 21633 
-#define SERVERM_PORT 24633
-#define MAXDATASIZE 50 // max number of bytes we can get at once
+#define SERVERCPORT 21633 
+#define SERVERMPORT 24633
+#define MAXDATASIZE 51 // max number of bytes we can get at once
 
 using namespace std;
 
-struct cred {
+struct Cred {
 	string user;
 	string pass;
 };
 
-void sigchld_handler(int s)
+void SigchldHandler(int s)
 {
 	while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 
 
 int main(void) {
-	int serverC_fd;
+	int serverCSock;
 	struct hostent *he;
-	struct sockaddr_in serverC_addr; // my address information
-	struct sockaddr_in serverM_addr; // connector’s address information
-	socklen_t addr_len;
+	struct sockaddr_in serverCAddr; // my address information
+	struct sockaddr_in serverMAddr; // connector’s address information
+	socklen_t addrLen;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
 	int numbytes;
@@ -48,7 +48,7 @@ int main(void) {
 	while(getline(file,line)){
 		n++;
 	}
-	cred entries[n];
+	Cred entries[n];
 	file.close();
 	file.open("cred.txt");
 	n = 0;
@@ -65,30 +65,30 @@ int main(void) {
 		exit(1);
 	}
 
-	if ((serverC_fd = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
+	if ((serverCSock = socket(PF_INET, SOCK_DGRAM, 0)) == -1) {
 		perror("socket");
 		exit(1);
 	}
-	if (setsockopt(serverC_fd,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
+	if (setsockopt(serverCSock,SOL_SOCKET,SO_REUSEADDR,&yes,sizeof(int)) == -1) {
 		perror("setsockopt");
 		exit(1);
 	}
-	serverC_addr.sin_family = AF_INET; // host byte order
-	serverC_addr.sin_port = htons(SERVERC_PORT); // short, network byte order
-	serverC_addr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
-	memset(&(serverC_addr.sin_zero), '\0', 8); // zero the rest of the struct
-	if (bind(serverC_fd, (struct sockaddr *)&serverC_addr, sizeof(struct sockaddr))==-1){
+	serverCAddr.sin_family = AF_INET; // host byte order
+	serverCAddr.sin_port = htons(SERVERCPORT); // short, network byte order
+	serverCAddr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
+	memset(&(serverCAddr.sin_zero), '\0', 8); // zero the rest of the struct
+	if (bind(serverCSock, (struct sockaddr *)&serverCAddr, sizeof(struct sockaddr))==-1){
 		perror("bind");
 		exit(1);
 	}
 
-	serverM_addr.sin_family = AF_INET; // host byte order
-	serverM_addr.sin_port = htons(SERVERM_PORT); // short, network byte order
-	serverM_addr.sin_addr = *((struct in_addr *)he->h_addr);
-	memset(&(serverM_addr.sin_zero), '\0', 8); // zero the rest of the struct
+	serverMAddr.sin_family = AF_INET; // host byte order
+	serverMAddr.sin_port = htons(SERVERMPORT); // short, network byte order
+	serverMAddr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(serverMAddr.sin_zero), '\0', 8); // zero the rest of the struct
 
-	cout << "The ServerC is up and running using UDP on port " << SERVERC_PORT << "." << endl;
-	sa.sa_handler = sigchld_handler; // reap all dead processes
+	cout << "The ServerC is up and running using UDP on port " << SERVERCPORT << "." << endl;
+	sa.sa_handler = SigchldHandler; // reap all dead processes
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
 	if (sigaction(SIGCHLD, &sa, NULL) == -1) {
@@ -97,8 +97,8 @@ int main(void) {
 	}
 
 	while(1) { // main accept() loop
-		addr_len = sizeof(struct sockaddr);
-		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
+		addrLen = sizeof(struct sockaddr);
+		if ((numbytes=recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
@@ -108,7 +108,7 @@ int main(void) {
 		char username[strlen(buf)];
 		strcpy(username,buf);
 
-		if ((numbytes=recvfrom(serverC_fd, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverM_addr, &addr_len)) == -1) {
+		if ((numbytes=recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
 			buf[numbytes] = '\0';
 			perror("recvfrom");
 			exit(1);
@@ -127,7 +127,7 @@ int main(void) {
 				break;
 			}
 		}
-		if ((numbytes = sendto(serverC_fd, auth.c_str(), 1, 0, (struct sockaddr *)&serverM_addr, addr_len)) == -1) {
+		if ((numbytes = sendto(serverCSock, auth.c_str(), 1, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
 			perror("sendto");
 			exit(1);
 		}
