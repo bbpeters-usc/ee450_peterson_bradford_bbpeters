@@ -41,7 +41,6 @@ int main(void) {
 	socklen_t addrLen;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
-	int numbytes;
 	int yes=1;
 
 	ifstream file("cs.txt");
@@ -106,21 +105,17 @@ int main(void) {
 
 	while(1) { // main accept() loop
 		addrLen = sizeof(struct sockaddr);
-		if ((numbytes=recvfrom(serverCSSock, buf, 6, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
+		if (recvfrom(serverCSSock, buf, 6, 0, (struct sockaddr *)&serverMAddr, &addrLen) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
-		buf[numbytes-1] = '\0';
 		string course = buf;
 
-		if ((numbytes=recvfrom(serverCSSock, buf, 11, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
-			buf[numbytes] = '\0';
+		if (recvfrom(serverCSSock, buf, 11, 0, (struct sockaddr *)&serverMAddr, &addrLen) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
-		buf[numbytes-1] = '\0';
 		string category = buf;
-
 		
 		cout << "The ServerCS received a request from the Main Server about the " << category << " of ";
 		cout << course << ".";
@@ -146,7 +141,7 @@ int main(void) {
 		} else { cout << "Didn’t find the course: " << course << "." << endl;}
 
 		result.append(MAXDATASIZE-result.length(), '\0');
-		if ((numbytes = sendto(serverCSSock, result.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
+		if (sendto(serverCSSock, result.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, addrLen) == -1) {
 			perror("sendto");
 			exit(1);
 		}
