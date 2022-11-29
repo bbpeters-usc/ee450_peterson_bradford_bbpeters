@@ -15,7 +15,9 @@
 
 #define TCPPORT 25633 // the port the client will be connecting to
 #define UDPPORT 24633 // the port servers will be connecting to
-#define SERVERCPORT 21633
+#define CPORT 21633
+#define EEPORT 23633
+#define CSPORT 22633
 #define BACKLOG 10 // how many pending connections queue will hold
 #define MAXDATASIZE 51 // max number of bytes we can get at once
 
@@ -61,6 +63,8 @@ int main(void) {
 	struct sockaddr_in udpAddr;
 	struct sockaddr_in clientAddr; // connector’s address information
 	struct sockaddr_in serverCAddr;
+	struct sockaddr_in serverEEAddr;
+	struct sockaddr_in serverCSAddr;
 	socklen_t sinSize;
 	socklen_t addrLen;
 	struct sigaction sa;
@@ -107,10 +111,20 @@ int main(void) {
 	}
 
 	serverCAddr.sin_family = AF_INET; // host byte order
-	serverCAddr.sin_port = htons(SERVERCPORT); // short, network byte order
+	serverCAddr.sin_port = htons(CPORT); // short, network byte order
 	serverCAddr.sin_addr = *((struct in_addr *)he->h_addr);
 	memset(&(serverCAddr.sin_zero), '\0', 8); // zero the rest of the struct
+
+	serverEEAddr.sin_family = AF_INET; // host byte order
+	serverEEAddr.sin_port = htons(EEPORT); // short, network byte order
+	serverEEAddr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(serverEEAddr.sin_zero), '\0', 8); // zero the rest of the struct
 	
+	serverCSAddr.sin_family = AF_INET; // host byte order
+	serverCSAddr.sin_port = htons(CSPORT); // short, network byte order
+	serverCSAddr.sin_addr = *((struct in_addr *)he->h_addr);
+	memset(&(serverCSAddr.sin_zero), '\0', 8); // zero the rest of the struct
+
 	if (listen(tcpSock, BACKLOG) == -1) {
 		perror("listen");
 		exit(1);
@@ -134,7 +148,8 @@ int main(void) {
 		}
 		if (!fork()) { // this is the child process
 			string username, password;
-			for(int i = 0; i < 3; i++) {
+			int n = 2;
+			while(1) { //authentication loop
 				if ((numBytes=recv(client, buf, MAXDATASIZE, 0)) == -1) {
 					perror("recv");
 					exit(1);
@@ -181,26 +196,65 @@ int main(void) {
 				cout << "The main server sent the authentication result to the client." << endl;
 				
 				if(buf[0] == '2') { break; }
+				else { n--; }
+				/*if(n == 2){
+
+				}*/
 			}
 
-			if ((numBytes=recv(client, buf, 5, 0)) == -1) {
-				perror("recv");
-				exit(1);
+			while(1){//query loop
+				if ((numBytes=recv(client, buf, 6, 0)) == -1) {
+					perror("recv");
+					exit(1);
+				}
+				buf[numBytes-1] = '\0';
+				string course = buf;
+
+				if ((numBytes=recv(client, buf, 11, 0)) == -1) {
+					perror("recv");
+					exit(1);
+				}
+				buf[numBytes-1] = '\0';
+				string category = buf;
+				cout << "The main server received from " << username << " to query course " << course;
+				cout << " about " << category << " using TCP over port " << TCPPORT << "." << endl;
+
+				struct sockaddr_in addr;
+				string server;
+				if(course[0] == 'E') { 
+					addr = serverEEAddr;
+					server = "EE"; 
+				}
+				else { 
+					addr = serverCSAddr;
+					server = "CS"; 
+				}
+				if ((numBytes = sendto(udpSock, course.c_str(), 6, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
+					perror("sendto");
+					exit(1);
+				}
+				course.append(11-encryptedPass.length(), '\0');
+				if ((numBytes = sendto(udpSock, course.c_str(), 11, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
+					perror("sendto");
+					exit(1);
+				}
+				cout << "The main server sent an authentication request to server" << server << "." << endl;
+
+				if ((numBytes=recvfrom(udpSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&addr, &addrLen)) == -1) {
+					perror("recvfrom");
+					exit(1);
+				}
+				buf[numBytes-1]='\0';
+
+				cout << "The main server received the response from Server" << server << " using UDP over port "; 
+				cout << UDPPORT << "." << endl;
+
+				if (send(client, buf, MAXDATASIZE, 0) == -1) {
+					perror("send");
+				}
+
+				cout << "The main server sent the query information to the client." << endl;
 			}
-			buf[numBytes] = '\0';
-			string course = buf;
-
-			if ((numBytes=recv(client, buf, 2, 0)) == -1) {
-				perror("recv");
-				exit(1);
-			}
-			buf[numBytes] = '\0';
-			string category = buf;
-			cout << "The main server received from " << username << " to query course "; 
-			//cout << course;
-			//about <category> using TCP over port <port number>."
-
-
 
 			close(udpSock);
 			close(tcpSock);
