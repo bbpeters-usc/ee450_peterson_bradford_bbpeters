@@ -1,3 +1,5 @@
+#My Makefile code is based on: https://stackoverflow.com/a/9789115  
+#
 #Tell make to make one .out file for each .cpp file found in the current directory
 all: $(patsubst %.cpp, %, $(wildcard *.cpp))
 
