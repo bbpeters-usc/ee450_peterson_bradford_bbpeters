@@ -200,7 +200,7 @@ int main(void) {
 			}
 
 			while(1){//query loop
-				if ((client, buf, 6, 0) == -1) {
+				if (recv(client, buf, 6, 0) == -1) {
 					perror("recv");
 					exit(1);
 				}
@@ -216,7 +216,7 @@ int main(void) {
 
 				struct sockaddr_in addr;
 				string server;
-				if(course[0] == 'E') { 
+				if(course.front() == 'E') { 
 					addr = serverEEAddr;
 					server = "EE"; 
 				}
@@ -224,6 +224,7 @@ int main(void) {
 					addr = serverCSAddr;
 					server = "CS"; 
 				}
+				course.append(6-course.length(), '\0');
 				if (sendto(udpSock, course.c_str(), 6, 0, (struct sockaddr *)&addr, addrLen) == -1) {
 					perror("sendto");
 					exit(1);
@@ -233,7 +234,7 @@ int main(void) {
 					perror("sendto");
 					exit(1);
 				}
-				cout << "The main server sent an authentication request to server" << server << "." << endl;
+				cout << "The main server sent a request to server" << server << "." << endl;
 
 				if (recvfrom(udpSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&addr, &addrLen) == -1) {
 					perror("recvfrom");

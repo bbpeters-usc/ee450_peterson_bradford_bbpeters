@@ -99,12 +99,14 @@ int main() {
 		getline(cin, course);
 		cout << "Please enter the category (Credit / Professor / Days / CourseName): ";
 		getline(cin, category);
-		while((category.compare("Credit")) || (category.compare("Professor")) || (category.compare("Days")) || (category.compare("CourseName"))){
+		while((category.compare("Credit")) && (category.compare("Professor")) && (category.compare("Days")) && (category.compare("CourseName"))){
 			cout << "Error. " << category << " is not a valid category." << endl;
 			cout << "Please enter the category (Credit / Professor / Days / CourseName): ";
 			getline(cin, category);
 		}
-
+		
+		msg = course;
+                msg.append(6-msg.length(), '\0');
 		if (send(serverMSock, course.c_str() , 6, 0) == -1) {
 			perror("send");
 		}

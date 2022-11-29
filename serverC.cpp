@@ -42,19 +42,22 @@ int main(void) {
 
 	ifstream file("cred.txt");
 	string line; 
-	int n = 0;
+	int m = 0;
 
 	while(getline(file,line)){
-		n++;
+		m++;
 	}
-	Cred entries[n];
+	Cred entries[m];
 	file.close();
 	file.open("cred.txt");
-	n = 0;
+	int n = 0;
 	while (getline(file,line)){
-	    entries[n].user = line.substr(0,line.find(','));
-	    line.erase(0, line.find(',') + 1);
-	    entries[n].pass = line;
+		entries[n].user = line.substr(0,line.find(','));
+		line.erase(0, line.find(',') + 1);
+		if(n<(m-1)){
+			line.erase(line.length()-1);
+		}
+		entries[n].pass = line;
 		n++;
 	}
 	

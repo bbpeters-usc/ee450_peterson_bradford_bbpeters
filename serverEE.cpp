@@ -45,15 +45,16 @@ int main(void) {
 
 	ifstream file("ee.txt");
 	string line; 
-	int n = 0;
+	int m = 0;
 
 	while(getline(file,line)){
-		n++;
+		m++;
 	}
-	Course courses[n];
+	Course courses[m];
 	file.close();
 	file.open("ee.txt");
-	n = 0;
+
+	int n = 0;
 	while (getline(file,line)){
 		courses[n].code = line.substr(0,line.find(','));
 		line.erase(0, line.find(',') + 1);
@@ -63,6 +64,9 @@ int main(void) {
 		line.erase(0, line.find(',') + 1);
 		courses[n].days = line.substr(0,line.find(','));
 		line.erase(0, line.find(',') + 1);
+		if(n<(m-1)){
+                        line.erase(line.length()-1);
+                }
 		courses[n].name = line;
 		n++;
 	}
@@ -117,14 +121,13 @@ int main(void) {
 		}
 		string category = buf;
 
-		
 		cout << "The ServerEE received a request from the Main Server about the " << category << " of ";
-		cout << course << ".";
+		cout << course << "." << endl;
 
 		string result = "-1"; //-1 means no course found, otherwise this is the information
 		for(int i = 0; i < n; i++){
 			if(!course.compare(courses[i].code)){
-				if(!category.compare("Credits")) {
+				if(!category.compare("Credit")) {
 					result = courses[i].cred;
 				} else if(!category.compare("Professor")){
 					result = courses[i].prof;
