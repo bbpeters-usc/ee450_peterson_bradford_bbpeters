@@ -194,10 +194,9 @@ int main(void) {
 				
 				if(buf[0] == '2') { break; }
 				else { n--; }
-				/*if(n == 2){
-
-				}*/
+				if(n == -1){ break; }
 			}
+			if(n == -1){ continue; } 
 
 			while(1){//query loop
 				if (recv(client, buf, 6, 0) == -1) {
