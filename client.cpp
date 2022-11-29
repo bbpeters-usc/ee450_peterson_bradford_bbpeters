@@ -66,11 +66,11 @@ int main() {
 		}
 		cout << username << " sent an authentication request to the main server." << endl;
 		
-		if ((numBytes=recv(serverMSock, buf, 1, 0)) == -1) {
+		if ((numBytes=recv(serverMSock, buf, 2, 0)) == -1) {
 			perror("recv");
 			exit(1);
 		}
-		buf[numBytes] = '\0';
+		buf[numBytes-1] = '\0';
 
 		if(buf[0] == '2'){ 
 			cout << username << " received the result of authentication using TCP over port " << clientPort << ". "; 
@@ -88,9 +88,10 @@ int main() {
 			n--;
 		}
 		if(n == -1){
-                        cout << "Authentication Failed for 3 attempts. Client will shut down." << endl;
-                        exit(0);
-                }
+			cout << "Authentication Failed for 3 attempts. Client will shut down." << endl;
+			close(serverMSock);
+			exit(0);
+		}
 	}
 	
 	string course, category;
@@ -99,23 +100,38 @@ int main() {
 		getline(cin, course);
 		cout << "Please enter the category (Credit / Professor / Days / CourseName): ";
 		getline(cin, category);
-		while((category != "Credit") || (category != "Professor") || (category != "Days") || (category != "CourseName")){
+		while((category.compare("Credit")) || (category.compare("Professor")) || (category.compare("Days")) || (category.compare("CourseName"))){
 			cout << "Error. " << category << " is not a valid category." << endl;
 			cout << "Please enter the category (Credit / Professor / Days / CourseName): ";
 			getline(cin, category);
 		}
 
-
-		if (send(serverMSock, course.c_str() , 5, 0) == -1) {
+		if (send(serverMSock, course.c_str() , 6, 0) == -1) {
 			perror("send");
 		}
 
-		category.erase(2, category.length()-1);
-		if (send(serverMSock, category.c_str() , 2, 0) == -1) {
+		msg = category;
+		msg.append(11-msg.length(), '\0');
+		if (send(serverMSock, category.c_str() , 11, 0) == -1) {
 			perror("send");
 		}
 		cout << username << " sent a request to the main server." << endl;
 
+		if ((numBytes=recv(serverMSock, buf, MAXDATASIZE, 0)) == -1) {
+			perror("recv");
+			exit(1);
+		}
+		buf[numBytes-1] = '\0';
+		string result = buf;
+		cout << "The client received the response from the Main server using TCP over port " << clientPort << ". " << endl;
+
+		if(!result.compare("-1")){
+			cout << "Didn’t find the course: " << course << "." << endl;
+		} else{
+			cout << "The " << category << " of " << course << " is " << result << "." << endl;
+		}
+		cout << endl;
+		cout << "-----Start a new request-----" << endl;
 	}
 	
 	close(serverMSock);
