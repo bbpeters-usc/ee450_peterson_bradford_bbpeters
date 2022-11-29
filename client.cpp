@@ -9,7 +9,7 @@
 #include <sys/socket.h>
 #include <iostream>
 
-#define SERVERMPORT 25633 // the main server point
+#define SERVERMPORT 25633 // the main server port
 #define MAXDATASIZE 51 // max number of bytes we can send or receive at once
 
 using namespace std;
