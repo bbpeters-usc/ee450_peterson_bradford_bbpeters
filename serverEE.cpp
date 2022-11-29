@@ -13,6 +13,9 @@
 #include <fstream>
 #include <cstring>
 
+/*
+For comments on lines and sections, please check serverCS.cpp as it is functionally identical to this one	
+*/
 #define EEPORT 23633 
 #define MPORT 24633
 #define MAXDATASIZE 51
@@ -55,7 +58,7 @@ int main(void) {
 	file.open("ee.txt");
 
 	int n = 0;
-	while (getline(file,line)){
+	while (getline(file,line)){//from https://stackoverflow.com/a/67540651
 		courses[n].code = line.substr(0,line.find(','));
 		line.erase(0, line.find(',') + 1);
 		courses[n].cred = line.substr(0,line.find(','));
@@ -154,5 +157,6 @@ int main(void) {
 
 	}
 	
+	close(serverEESock);
 	return 0;
 }
