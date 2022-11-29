@@ -38,7 +38,6 @@ int main(void) {
 	socklen_t addrLen;
 	struct sigaction sa;
 	char buf[MAXDATASIZE];
-	int numbytes;
 	int yes=1;
 
 	ifstream file("cred.txt");
@@ -97,20 +96,16 @@ int main(void) {
 
 	while(1) { // main accept() loop
 		addrLen = sizeof(struct sockaddr);
-		if ((numbytes=recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
+		if (recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
-
-		buf[numbytes-1] = '\0';
 		string username = buf;
 
-		if ((numbytes=recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen)) == -1) {
-			buf[numbytes] = '\0';
+		if (recvfrom(serverCSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, &addrLen) == -1) {
 			perror("recvfrom");
 			exit(1);
 		}
-		buf[numbytes-1] = '\0';
 		string password = buf;
 
 		cout << "The ServerC received an authentication request from the Main Server." << endl;
@@ -123,7 +118,7 @@ int main(void) {
 				break;
 			}
 		}
-		if ((numbytes = sendto(serverCSock, auth.c_str(), 2, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
+		if (sendto(serverCSock, auth.c_str(), 2, 0, (struct sockaddr *)&serverMAddr, addrLen) == -1) {
 			perror("sendto");
 			exit(1);
 		}
