@@ -57,7 +57,7 @@ string EncryptCred(string input) {
 }
 
 int main(void) {
-	int tcpSock, udpSock, client, numBytes; // listen on sock_fd, new connection on client
+	int tcpSock, udpSock, client; // listen on sock_fd, new connection on client
 	struct hostent *he;
 	struct sockaddr_in tcpAddr; // my address information
 	struct sockaddr_in udpAddr;
@@ -150,18 +150,16 @@ int main(void) {
 			string username, password;
 			int n = 2;
 			while(1) { //authentication loop
-				if ((numBytes=recv(client, buf, MAXDATASIZE, 0)) == -1) {
+				if (recv(client, buf, MAXDATASIZE, 0) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes-1]='\0';
 				username = buf;
 
-				if ((numBytes=recv(client, buf, MAXDATASIZE, 0)) == -1) {
+				if (recv(client, buf, MAXDATASIZE, 0) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes-1]='\0';
 				password = buf;
 
 				cout << "The main server recieved the authentication for " << username;
@@ -172,21 +170,20 @@ int main(void) {
 				string encryptedPass = EncryptCred(password);
 				encryptedPass.append(MAXDATASIZE-encryptedPass.length(), '\0');
 				
-				if ((numBytes = sendto(udpSock, encryptedUser.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
+				if (sendto(udpSock, encryptedUser.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen) == -1) {
 					perror("sendto");
 					exit(1);
 				}
-				if ((numBytes = sendto(udpSock, encryptedPass.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen)) == -1) {
+				if (sendto(udpSock, encryptedPass.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverCAddr, addrLen) == -1) {
 					perror("sendto");
 					exit(1);
 				}
 				cout << "The main server sent an authentication request to serverC." << endl;
 
-				if ((numBytes=recvfrom(udpSock, buf, 2, 0, (struct sockaddr *)&serverCAddr, &addrLen)) == -1) {
+				if (recvfrom(udpSock, buf, 2, 0, (struct sockaddr *)&serverCAddr, &addrLen) == -1) {
 					perror("recvfrom");
 					exit(1);
 				}
-				buf[numBytes-1]='\0';
 				cout << "The main server received the result of the authentication request from ServerC using UDP over port "; 
 				cout << UDPPORT << "." << endl; 
 				
@@ -203,18 +200,16 @@ int main(void) {
 			}
 
 			while(1){//query loop
-				if ((numBytes=recv(client, buf, 6, 0)) == -1) {
+				if ((client, buf, 6, 0) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes-1] = '\0';
 				string course = buf;
 
-				if ((numBytes=recv(client, buf, 11, 0)) == -1) {
+				if (recv(client, buf, 11, 0) == -1) {
 					perror("recv");
 					exit(1);
 				}
-				buf[numBytes-1] = '\0';
 				string category = buf;
 				cout << "The main server received from " << username << " to query course " << course;
 				cout << " about " << category << " using TCP over port " << TCPPORT << "." << endl;
@@ -229,22 +224,21 @@ int main(void) {
 					addr = serverCSAddr;
 					server = "CS"; 
 				}
-				if ((numBytes = sendto(udpSock, course.c_str(), 6, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
+				if (sendto(udpSock, course.c_str(), 6, 0, (struct sockaddr *)&addr, addrLen) == -1) {
 					perror("sendto");
 					exit(1);
 				}
 				category.append(11-category.length(), '\0');
-				if ((numBytes = sendto(udpSock, category.c_str(), 11, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
+				if (sendto(udpSock, category.c_str(), 11, 0, (struct sockaddr *)&addr, addrLen) == -1) {
 					perror("sendto");
 					exit(1);
 				}
 				cout << "The main server sent an authentication request to server" << server << "." << endl;
 
-				if ((numBytes=recvfrom(udpSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&addr, &addrLen)) == -1) {
+				if (recvfrom(udpSock, buf, MAXDATASIZE, 0, (struct sockaddr *)&addr, &addrLen) == -1) {
 					perror("recvfrom");
 					exit(1);
 				}
-				buf[numBytes-1]='\0';
 
 				cout << "The main server received the response from Server" << server << " using UDP over port "; 
 				cout << UDPPORT << "." << endl;
