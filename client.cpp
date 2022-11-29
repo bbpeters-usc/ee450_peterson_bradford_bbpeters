@@ -15,7 +15,7 @@
 using namespace std;
 
 int main() {
-	int serverMSock, numBytes;
+	int serverMSock;
 	char buf[MAXDATASIZE];
 	struct hostent *he;
 	struct sockaddr_in serverMAddr; 
@@ -66,11 +66,10 @@ int main() {
 		}
 		cout << username << " sent an authentication request to the main server." << endl;
 		
-		if ((numBytes=recv(serverMSock, buf, 2, 0)) == -1) {
+		if (recv(serverMSock, buf, 2, 0) == -1) {
 			perror("recv");
 			exit(1);
 		}
-		buf[numBytes-1] = '\0';
 
 		if(buf[0] == '2'){ 
 			cout << username << " received the result of authentication using TCP over port " << clientPort << ". "; 
@@ -117,11 +116,10 @@ int main() {
 		}
 		cout << username << " sent a request to the main server." << endl;
 
-		if ((numBytes=recv(serverMSock, buf, MAXDATASIZE, 0)) == -1) {
+		if (recv(serverMSock, buf, MAXDATASIZE, 0) == -1) {
 			perror("recv");
 			exit(1);
 		}
-		buf[numBytes-1] = '\0';
 		string result = buf;
 		cout << "The client received the response from the Main server using TCP over port " << clientPort << ". " << endl;
 
