@@ -233,8 +233,8 @@ int main(void) {
 					perror("sendto");
 					exit(1);
 				}
-				course.append(11-encryptedPass.length(), '\0');
-				if ((numBytes = sendto(udpSock, course.c_str(), 11, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
+				category.append(11-category.length(), '\0');
+				if ((numBytes = sendto(udpSock, category.c_str(), 11, 0, (struct sockaddr *)&addr, addrLen)) == -1) {
 					perror("sendto");
 					exit(1);
 				}

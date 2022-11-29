@@ -44,9 +44,9 @@ int main() {
 	getsockname(serverMSock, (struct sockaddr *) &clientAddr, &len);
 	clientPort = ntohs(clientAddr.sin_port);
 
-	cout << "The client is up and running" << endl;
+	cout << "The client is up and running." << endl;
 
-	string username, password;
+	string username, password, msg;
 	int n = 2;
 	while(1){ //Authentication loop
 		cout << "Please enter the username: ";
@@ -54,7 +54,7 @@ int main() {
 		cout << "Please enter the password: ";
 		getline(cin, password);
 
-		string msg = username;
+		msg = username;
 		msg.append(MAXDATASIZE-msg.length(), '\0');
 		if (send(serverMSock, msg.c_str() , MAXDATASIZE, 0) == -1) {
 			perror("send");

@@ -125,7 +125,6 @@ int main(void) {
 		cout << "The ServerEE received a request from the Main Server about the " << category << " of ";
 		cout << course << ".";
 
-		switch
 		string result = "-1"; //-1 means no course found, otherwise this is the information
 		for(int i = 0; i < n; i++){
 			if(!course.compare(courses[i].code)){
@@ -143,8 +142,8 @@ int main(void) {
 		}
 		if(result.compare("-1")){
 			cout << "The course information has been found: The " << category << " of " << course;
-			cout << " is " << result ".";
-		} else { cout << "Didn’t find the course: " << course ".";}
+			cout << " is " << result <<  "." << endl;
+		} else { cout << "Didn’t find the course: " << course << "." << endl;}
 
 		result.append(MAXDATASIZE-result.length(), '\0');
 		if ((numbytes = sendto(serverEESock, result.c_str(), MAXDATASIZE, 0, (struct sockaddr *)&serverMAddr, addrLen)) == -1) {
