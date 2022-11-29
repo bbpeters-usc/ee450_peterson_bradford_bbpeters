@@ -136,5 +136,6 @@ int main(void) {
 
 	}
 	
+	close(serverCSock);
 	return 0;
 }
