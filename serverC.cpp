@@ -13,8 +13,8 @@
 #include <fstream>
 #include <cstring>
 
-#define SERVERCPORT 21633 
-#define SERVERMPORT 24633
+#define CPORT 21633 
+#define MPORT 24633
 #define MAXDATASIZE 51 // max number of bytes we can get at once
 
 using namespace std;
@@ -52,7 +52,6 @@ int main(void) {
 	file.close();
 	file.open("cred.txt");
 	n = 0;
-	char c;
 	while (getline(file,line)){
 	    entries[n].user = line.substr(0,line.find(','));
 	    line.erase(0, line.find(',') + 1);
@@ -74,7 +73,7 @@ int main(void) {
 		exit(1);
 	}
 	serverCAddr.sin_family = AF_INET; // host byte order
-	serverCAddr.sin_port = htons(SERVERCPORT); // short, network byte order
+	serverCAddr.sin_port = htons(CPORT); // short, network byte order
 	serverCAddr.sin_addr.s_addr = INADDR_ANY; // automatically fill with my IP
 	memset(&(serverCAddr.sin_zero), '\0', 8); // zero the rest of the struct
 	if (bind(serverCSock, (struct sockaddr *)&serverCAddr, sizeof(struct sockaddr))==-1){
@@ -83,11 +82,11 @@ int main(void) {
 	}
 
 	serverMAddr.sin_family = AF_INET; // host byte order
-	serverMAddr.sin_port = htons(SERVERMPORT); // short, network byte order
+	serverMAddr.sin_port = htons(MPORT); // short, network byte order
 	serverMAddr.sin_addr = *((struct in_addr *)he->h_addr);
 	memset(&(serverMAddr.sin_zero), '\0', 8); // zero the rest of the struct
 
-	cout << "The ServerC is up and running using UDP on port " << SERVERCPORT << "." << endl;
+	cout << "The ServerC is up and running using UDP on port " << CPORT << "." << endl;
 	sa.sa_handler = SigchldHandler; // reap all dead processes
 	sigemptyset(&sa.sa_mask);
 	sa.sa_flags = SA_RESTART;
